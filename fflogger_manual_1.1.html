@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FamilyFilter — .ffsheet Builder</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Syne:wght@400;500;600;700&display=swap');
+
+:root {
+–bg: #0a0a0a;
+–surface: #111111;
+–surface2: #1a1a1a;
+–border: #2a2a2a;
+–border-focus: #1a6b6b;
+–teal: #1db8b8;
+–teal-dim: #0f6b6b;
+–text: #f0f0f0;
+–text-dim: #888;
+–text-muted: #444;
+–red: #c0392b;
+–red-bg: #2a0f0f;
+–red-border: #6b1a1a;
+–mono: ‘JetBrains Mono’, monospace;
+–sans: ‘Syne’, sans-serif;
+}
+
+- { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+background: var(–bg);
+color: var(–text);
+font-family: var(–mono);
+min-height: 100vh;
+padding: 32px 24px 80px;
+}
+
+.header {
+display: flex;
+align-items: baseline;
+gap: 12px;
+margin-bottom: 32px;
+}
+.header-logo {
+font-family: var(–sans);
+font-size: 20px;
+font-weight: 700;
+color: var(–teal);
+letter-spacing: -0.5px;
+}
+.header-sub {
+font-size: 11px;
+color: var(–text-muted);
+letter-spacing: 2px;
+text-transform: uppercase;
+}
+
+.meta-card {
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: 8px;
+padding: 20px;
+margin-bottom: 16px;
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 16px;
+}
+
+.meta-card-row {
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: 8px;
+padding: 16px 20px;
+margin-bottom: 24px;
+display: flex;
+align-items: center;
+gap: 20px;
+flex-wrap: wrap;
+}
+
+.field-label {
+font-size: 10px;
+letter-spacing: 2px;
+text-transform: uppercase;
+color: var(–text-dim);
+margin-bottom: 6px;
+}
+
+.field-input {
+background: var(–surface2);
+border: 1px solid var(–border);
+border-radius: 5px;
+color: var(–text);
+font-family: var(–mono);
+font-size: 13px;
+padding: 10px 12px;
+width: 100%;
+transition: border-color 0.15s;
+outline: none;
+}
+.field-input:focus { border-color: var(–teal); }
+.field-input::placeholder { color: var(–text-muted); }
+
+select.field-input {
+cursor: pointer;
+appearance: none;
+background-image: url(“data:image/svg+xml,%3Csvg xmlns=‘http://www.w3.org/2000/svg’ width=‘10’ height=‘6’ viewBox=‘0 0 10 6’%3E%3Cpath d=‘M0 0l5 6 5-6z’ fill=’%23888’/%3E%3C/svg%3E”);
+background-repeat: no-repeat;
+background-position: right 12px center;
+padding-right: 32px;
+}
+
+/* COUNTDOWN TOGGLE ROW */
+.mode-row {
+display: flex;
+align-items: center;
+gap: 16px;
+flex-wrap: wrap;
+flex: 1;
+}
+
+.mode-label {
+font-size: 11px;
+color: var(–text-dim);
+letter-spacing: 1px;
+text-transform: uppercase;
+white-space: nowrap;
+}
+
+.toggle-group {
+display: flex;
+background: var(–surface2);
+border: 1px solid var(–border);
+border-radius: 6px;
+overflow: hidden;
+}
+.toggle-btn {
+background: none;
+border: none;
+color: var(–text-dim);
+cursor: pointer;
+font-family: var(–mono);
+font-size: 11px;
+padding: 7px 14px;
+transition: background 0.15s, color 0.15s;
+white-space: nowrap;
+}
+.toggle-btn.active {
+background: var(–teal-dim);
+color: var(–teal);
+}
+
+.runtime-field {
+display: flex;
+align-items: center;
+gap: 10px;
+}
+.runtime-field .field-label { margin-bottom: 0; white-space: nowrap; }
+.runtime-input {
+background: var(–surface2);
+border: 1px solid var(–border);
+border-radius: 5px;
+color: var(–text);
+font-family: var(–mono);
+font-size: 13px;
+padding: 7px 10px;
+width: 110px;
+outline: none;
+transition: border-color 0.15s;
+text-align: center;
+letter-spacing: 1px;
+}
+.runtime-input:focus { border-color: var(–teal); }
+.runtime-input::placeholder { color: var(–text-muted); }
+.runtime-input.error { border-color: var(–red); }
+
+.runtime-hint {
+font-size: 10px;
+color: var(–text-muted);
+}
+
+/* TABLE */
+.table-wrap {
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: 8px;
+overflow: hidden;
+margin-bottom: 16px;
+}
+
+table { width: 100%; border-collapse: collapse; }
+
+thead tr {
+background: var(–surface2);
+border-bottom: 1px solid var(–border);
+}
+
+th {
+font-size: 9px;
+letter-spacing: 2px;
+text-transform: uppercase;
+color: var(–text-dim);
+padding: 10px 10px;
+text-align: left;
+font-weight: 500;
+white-space: nowrap;
+}
+th:last-child { text-align: center; }
+
+tbody tr {
+border-bottom: 1px solid var(–border);
+transition: background 0.1s;
+}
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: #141414; }
+
+tbody tr.overlap-error { background: var(–red-bg); border-color: var(–red-border); }
+tbody tr.overlap-error td { border-color: var(–red-border); }
+
+td { padding: 6px 6px; vertical-align: middle; }
+
+td input, td select {
+background: transparent;
+border: 1px solid transparent;
+border-radius: 4px;
+color: var(–text);
+font-family: var(–mono);
+font-size: 12px;
+padding: 6px 8px;
+width: 100%;
+outline: none;
+transition: border-color 0.15s, background 0.15s;
+}
+td input:focus, td select:focus {
+border-color: var(–border-focus);
+background: var(–surface2);
+}
+td input::placeholder { color: var(–text-muted); }
+
+td select {
+cursor: pointer;
+appearance: none;
+background-image: url(“data:image/svg+xml,%3Csvg xmlns=‘http://www.w3.org/2000/svg’ width=‘8’ height=‘5’ viewBox=‘0 0 8 5’%3E%3Cpath d=‘M0 0l4 5 4-5z’ fill=’%23888’/%3E%3C/svg%3E”);
+background-repeat: no-repeat;
+background-position: right 8px center;
+padding-right: 24px;
+}
+
+.ts-input {
+font-family: var(–mono);
+letter-spacing: 1px;
+width: 108px !important;
+text-align: center;
+}
+.ts-input.error { border-color: var(–red) !important; color: var(–red); }
+
+.delete-btn {
+background: none;
+border: none;
+color: var(–text-muted);
+cursor: pointer;
+font-size: 14px;
+padding: 4px 8px;
+border-radius: 4px;
+transition: color 0.15s, background 0.15s;
+display: block;
+margin: 0 auto;
+line-height: 1;
+}
+.delete-btn:hover { color: var(–red); background: var(–red-bg); }
+
+.row-num {
+color: var(–text-muted);
+font-size: 11px;
+text-align: center;
+min-width: 28px;
+padding: 0 4px;
+}
+
+.add-row-btn {
+background: none;
+border: 1px dashed var(–border);
+border-radius: 6px;
+color: var(–text-dim);
+cursor: pointer;
+font-family: var(–mono);
+font-size: 12px;
+padding: 10px;
+width: 100%;
+text-align: center;
+transition: border-color 0.15s, color 0.15s;
+margin-bottom: 24px;
+}
+.add-row-btn:hover { border-color: var(–teal); color: var(–teal); }
+
+.overlap-banner {
+display: none;
+background: var(–red-bg);
+border: 1px solid var(–red-border);
+border-radius: 6px;
+color: #e87070;
+font-size: 12px;
+padding: 10px 14px;
+margin-bottom: 16px;
+align-items: center;
+gap: 8px;
+}
+.overlap-banner.visible { display: flex; }
+
+.runtime-missing-banner {
+display: none;
+background: #1a1500;
+border: 1px solid #4a3a00;
+border-radius: 6px;
+color: #c8a040;
+font-size: 12px;
+padding: 10px 14px;
+margin-bottom: 16px;
+align-items: center;
+gap: 8px;
+}
+.runtime-missing-banner.visible { display: flex; }
+
+.actions-bar {
+display: flex;
+gap: 12px;
+align-items: center;
+flex-wrap: wrap;
+}
+
+.btn-export {
+background: var(–teal);
+border: none;
+border-radius: 6px;
+color: #0a0a0a;
+cursor: pointer;
+font-family: var(–mono);
+font-size: 13px;
+font-weight: 600;
+padding: 12px 24px;
+transition: opacity 0.15s;
+letter-spacing: 0.5px;
+}
+.btn-export:hover:not(:disabled) { opacity: 0.85; }
+.btn-export:disabled {
+background: var(–text-muted);
+cursor: not-allowed;
+opacity: 0.6;
+}
+
+.btn-clear {
+background: none;
+border: 1px solid var(–border);
+border-radius: 6px;
+color: var(–text-dim);
+cursor: pointer;
+font-family: var(–mono);
+font-size: 12px;
+padding: 12px 16px;
+transition: border-color 0.15s, color 0.15s;
+}
+.btn-clear:hover { border-color: var(–red-border); color: #e87070; }
+
+.export-note { font-size: 11px; color: var(–text-muted); margin-left: auto; }
+
+.entry-count {
+font-size: 11px;
+color: var(–text-muted);
+margin-bottom: 12px;
+padding-left: 2px;
+}
+.entry-count span { color: var(–teal); }
+
+.overlap-dot {
+display: inline-block;
+width: 6px; height: 6px;
+background: var(–red);
+border-radius: 50%;
+margin-right: 6px;
+flex-shrink: 0;
+margin-top: 1px;
+}
+
+.empty-row td {
+text-align: center;
+color: var(–text-muted);
+font-size: 12px;
+padding: 28px;
+pointer-events: none;
+}
+
+/* Converted timestamp preview */
+.ts-preview {
+font-size: 9px;
+color: var(–teal-dim);
+text-align: center;
+padding-top: 2px;
+letter-spacing: 0.5px;
+min-height: 14px;
+}
+
+@media (max-width: 700px) {
+body { padding: 16px 12px 60px; }
+.meta-card { grid-template-columns: 1fr; }
+th, td { padding: 4px 4px; }
+.ts-input { width: 90px !important; }
+.export-note { display: none; }
+.meta-card-row { gap: 12px; }
+}
+</style>
+
+</head>
+<body>
+
+<div class="header">
+  <div class="header-logo">FamilyFilter</div>
+  <div class="header-sub">.ffsheet Builder v1.1</div>
+</div>
+
+<!-- Movie Meta -->
+
+<div class="meta-card">
+  <div>
+    <div class="field-label">Movie Title</div>
+    <input class="field-input" id="movieTitle" type="text" placeholder="e.g. Iron Man 2">
+  </div>
+  <div>
+    <div class="field-label">Platform</div>
+    <select class="field-input" id="platform">
+      <option value="">Select platform…</option>
+      <option>Netflix</option>
+      <option>Disney+</option>
+      <option>HBO Max</option>
+      <option>Amazon Prime</option>
+      <option>Other</option>
+    </select>
+  </div>
+</div>
+
+<!-- Mode + Runtime Row -->
+
+<div class="meta-card-row">
+  <div class="mode-row">
+    <div class="mode-label">Timestamp mode</div>
+    <div class="toggle-group">
+      <button class="toggle-btn active" id="btnCountdown" onclick="setMode('countdown')">⏳ Countdown</button>
+      <button class="toggle-btn" id="btnElapsed" onclick="setMode('elapsed')">▶ Elapsed</button>
+    </div>
+  </div>
+  <div class="runtime-field" id="runtimeField">
+    <div class="field-label">Total runtime</div>
+    <input class="runtime-input" id="runtimeInput" type="text" placeholder="H:MM:SS" maxlength="9">
+    <div class="runtime-hint">first timestamp<br>you see on screen</div>
+  </div>
+</div>
+
+<!-- Banners -->
+
+<div class="runtime-missing-banner" id="runtimeBanner">
+  <span class="overlap-dot" style="background:#c8a040"></span>
+  <span>Enter total runtime above to enable countdown conversion.</span>
+</div>
+<div class="overlap-banner" id="overlapBanner">
+  <span class="overlap-dot"></span>
+  <span id="overlapMsg">Overlapping entries detected — fix highlighted rows before exporting.</span>
+</div>
+
+<!-- Entry count -->
+
+<div class="entry-count">Censor entries: <span id="entryCount">0</span></div>
+
+<!-- Table -->
+
+<div class="table-wrap">
+  <table id="entryTable">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th id="thStart">Start ⏳</th>
+        <th id="thEnd">End ⏳</th>
+        <th>Action</th>
+        <th>Tag</th>
+        <th>Note</th>
+        <th>×</th>
+      </tr>
+    </thead>
+    <tbody id="tableBody">
+      <tr class="empty-row" id="emptyRow">
+        <td colspan="7">No entries yet — add one below</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<button class="add-row-btn" id="addRowBtn">＋ Add Entry</button>
+
+<!-- Actions -->
+
+<div class="actions-bar">
+  <button class="btn-export" id="exportBtn">Export .ffsheet</button>
+  <button class="btn-clear" id="clearBtn">Clear all</button>
+  <span class="export-note" id="exportNote"></span>
+</div>
+
+<script>
+  const ACTION_OPTIONS = [
+    { value: 'blackout+mute',         label: '🚫🔇 Full blackout + mute' },
+    { value: 'blackout+half-audio',   label: '🚫🔈 Full blackout + half audio' },
+    { value: 'half-audio',            label: '🔈 Half audio only' },
+    { value: 'partial-blackout+mute', label: '🔳🔇 Partial blackout + mute' },
+  ];
+
+  const TAG_OPTIONS = ['Violence','Modesty','Profanity','Fear','Shock','Suggestive Theme','Other'];
+
+  let entries = [];
+  let nextId  = 1;
+  let mode    = 'countdown'; // 'countdown' | 'elapsed'
+
+  const tableBody      = document.getElementById('tableBody');
+  const emptyRow       = document.getElementById('emptyRow');
+  const exportBtn      = document.getElementById('exportBtn');
+  const overlapBanner  = document.getElementById('overlapBanner');
+  const overlapMsg     = document.getElementById('overlapMsg');
+  const entryCount     = document.getElementById('entryCount');
+  const exportNote     = document.getElementById('exportNote');
+  const runtimeInput   = document.getElementById('runtimeInput');
+  const runtimeField   = document.getElementById('runtimeField');
+  const runtimeBanner  = document.getElementById('runtimeBanner');
+  const thStart        = document.getElementById('thStart');
+  const thEnd          = document.getElementById('thEnd');
+
+  // ── Mode toggle ────────────────────────────────────────────────
+  function setMode(m) {
+    mode = m;
+    document.getElementById('btnCountdown').classList.toggle('active', m === 'countdown');
+    document.getElementById('btnElapsed').classList.toggle('active', m === 'elapsed');
+    runtimeField.style.display = m === 'countdown' ? 'flex' : 'none';
+    thStart.textContent = m === 'countdown' ? 'Start ⏳' : 'Start ▶';
+    thEnd.textContent   = m === 'countdown' ? 'End ⏳'   : 'End ▶';
+    validate();
+    render();
+  }
+
+  runtimeInput.addEventListener('input', () => { validate(); updateAllPreviews(); });
+  runtimeInput.addEventListener('blur', () => {
+    runtimeInput.value = formatTS(runtimeInput.value) || runtimeInput.value;
+    validate();
+    updateAllPreviews();
+  });
+
+  // ── Timestamp helpers ──────────────────────────────────────────
+  function parseRaw(str) {
+    // Accepts: 20431, 20431.3, 2:04:31, 2:04:31.3, 130, 45, 4 etc.
+    if (!str || !str.trim()) return null;
+    const s = str.trim();
+
+    // Already formatted with colons
+    const colonMatch = s.match(/^(\d{1,2}):(\d{2}):(\d{2})(?:\.(\d))?$/);
+    if (colonMatch) {
+      const h = parseInt(colonMatch[1]), min = parseInt(colonMatch[2]), sec = parseInt(colonMatch[3]);
+      const dec = colonMatch[4] !== undefined ? parseInt(colonMatch[4]) : 0;
+      if (min > 59 || sec > 59) return null;
+      return { h, min, sec, dec };
+    }
+
+    // No-separator format: digits with optional .d
+    const rawMatch = s.match(/^(\d+)(?:\.(\d))?$/);
+    if (!rawMatch) return null;
+    const dec = rawMatch[2] !== undefined ? parseInt(rawMatch[2]) : 0;
+    let digits = rawMatch[1];
+
+    // Pad to at least 6 digits: HHMMSS
+    digits = digits.padStart(6, '0');
+
+    // Take last 6 digits as HHMMSS, anything before is extra hours
+    const sec = parseInt(digits.slice(-2));
+    const min = parseInt(digits.slice(-4, -2));
+    const h   = parseInt(digits.slice(0, -4));
+
+    if (min > 59 || sec > 59) return null;
+    return { h, min, sec, dec };
+  }
+
+  function parseTS(str) {
+    const p = parseRaw(str);
+    if (!p) return null;
+    return p.h * 3600 + p.min * 60 + p.sec + p.dec * 0.1;
+  }
+
+  function formatTS(str) {
+    if (!str || !str.trim()) return str;
+    const p = parseRaw(str.trim());
+    if (!p) return str;
+    return `${String(p.h).padStart(2,'0')}:${String(p.min).padStart(2,'0')}:${String(p.sec).padStart(2,'0')}.${p.dec}`;
+  }
+
+  function secsToTS(s) {
+    if (s < 0) s = 0;
+    const h   = Math.floor(s / 3600);
+    const m   = Math.floor((s % 3600) / 60);
+    const sec = Math.floor(s % 60);
+    const dec = Math.round((s % 1) * 10);
+    return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}.${dec}`;
+  }
+
+  function toElapsed(cdTS) {
+    // Convert countdown timestamp to elapsed
+    const runtime = parseTS(runtimeInput.value);
+    const cd      = parseTS(cdTS);
+    if (runtime === null || cd === null) return null;
+    const elapsed = runtime - cd;
+    if (elapsed < 0) return null;
+    return secsToTS(elapsed);
+  }
+
+  function getElapsedTS(rawTS) {
+    if (mode === 'elapsed') return rawTS;
+    return toElapsed(rawTS);
+  }
+
+  // ── Overlap detection (works on elapsed time) ─────────────────
+  function getOverlaps() {
+    const valid = entries.filter(e => {
+      const s = getElapsedTS(e.start);
+      const en = getElapsedTS(e.end);
+      return parseTS(s) !== null && parseTS(en) !== null;
+    });
+    const sorted = [...valid].sort((a,b) => {
+      return parseTS(getElapsedTS(a.start)) - parseTS(getElapsedTS(b.start));
+    });
+    const conflictIds = new Set();
+    for (let i = 0; i < sorted.length - 1; i++) {
+      const endI     = parseTS(getElapsedTS(sorted[i].end));
+      const startNext = parseTS(getElapsedTS(sorted[i+1].start));
+      if (endI > startNext) {
+        conflictIds.add(sorted[i].id);
+        conflictIds.add(sorted[i+1].id);
+      }
+    }
+    return conflictIds;
+  }
+
+  // ── Update timestamp previews ──────────────────────────────────
+  function updateAllPreviews() {
+    if (mode !== 'countdown') return;
+    entries.forEach(e => {
+      const startPrev = document.getElementById(`prev-start-${e.id}`);
+      const endPrev   = document.getElementById(`prev-end-${e.id}`);
+      if (startPrev) startPrev.textContent = toElapsed(e.start) ? `→ ${toElapsed(e.start)}` : '';
+      if (endPrev)   endPrev.textContent   = toElapsed(e.end)   ? `→ ${toElapsed(e.end)}`   : '';
+    });
+  }
+
+  // ── Validation ─────────────────────────────────────────────────
+  function validate() {
+    const overlaps = getOverlaps();
+    let hasError   = false;
+    const runtimeOk = mode === 'elapsed' || parseTS(runtimeInput.value) !== null;
+
+    // Runtime banner
+    if (mode === 'countdown' && !runtimeOk && entries.length > 0) {
+      runtimeBanner.classList.add('visible');
+      runtimeInput.classList.add('error');
+    } else {
+      runtimeBanner.classList.remove('visible');
+      runtimeInput.classList.remove('error');
+    }
+
+    entries.forEach(e => {
+      const row    = document.getElementById(`row-${e.id}`);
+      if (!row) return;
+      const endEl  = row.querySelector('.ts-end');
+      if (!endEl) return;
+
+      const ts = parseTS(getElapsedTS(e.start));
+      const te = parseTS(getElapsedTS(e.end));
+
+      if (ts !== null && te !== null && te <= ts) {
+        endEl.classList.add('error');
+        endEl.title = 'End time must be after start time';
+        hasError = true;
+      } else {
+        endEl.classList.remove('error');
+        endEl.title = '';
+      }
+
+      if (overlaps.has(e.id)) {
+        row.classList.add('overlap-error');
+        hasError = true;
+      } else {
+        row.classList.remove('overlap-error');
+      }
+    });
+
+    if (overlaps.size > 0) {
+      overlapMsg.textContent = `Overlapping entries detected — fix ${overlaps.size} highlighted rows before exporting.`;
+      overlapBanner.classList.add('visible');
+    } else {
+      overlapBanner.classList.remove('visible');
+    }
+
+    const missingRuntime = mode === 'countdown' && !runtimeOk && entries.length > 0;
+    exportBtn.disabled = hasError || overlaps.size > 0 || missingRuntime;
+    entryCount.textContent = entries.length;
+  }
+
+  // ── Render ─────────────────────────────────────────────────────
+  function render() {
+    Array.from(tableBody.querySelectorAll('tr:not(#emptyRow)')).forEach(r => r.remove());
+
+    if (entries.length === 0) {
+      emptyRow.style.display = '';
+      entryCount.textContent = '0';
+      exportBtn.disabled = false;
+      overlapBanner.classList.remove('visible');
+      runtimeBanner.classList.remove('visible');
+      return;
+    }
+    emptyRow.style.display = 'none';
+
+    entries.forEach((e, idx) => {
+      const tr = document.createElement('tr');
+      tr.id = `row-${e.id}`;
+
+      const actionOpts = ACTION_OPTIONS.map(o =>
+        `<option value="${o.value}" ${e.action === o.value ? 'selected' : ''}>${o.label}</option>`
+      ).join('');
+
+      const tagOpts = ['', ...TAG_OPTIONS].map(t =>
+        `<option value="${t}" ${e.tag === t ? 'selected' : ''}>${t || '— tag —'}</option>`
+      ).join('');
+
+      const startElapsed = mode === 'countdown' && toElapsed(e.start) ? `→ ${toElapsed(e.start)}` : '';
+      const endElapsed   = mode === 'countdown' && toElapsed(e.end)   ? `→ ${toElapsed(e.end)}`   : '';
+
+      tr.innerHTML = `
+        <td class="row-num">${idx + 1}</td>
+        <td>
+          <input class="ts-input ts-start" type="text" value="${e.start}" placeholder="H:MM:SS" maxlength="11" data-id="${e.id}" data-field="start">
+          ${mode === 'countdown' ? `<div class="ts-preview" id="prev-start-${e.id}">${startElapsed}</div>` : ''}
+        </td>
+        <td>
+          <input class="ts-input ts-end" type="text" value="${e.end}" placeholder="H:MM:SS" maxlength="11" data-id="${e.id}" data-field="end">
+          ${mode === 'countdown' ? `<div class="ts-preview" id="prev-end-${e.id}">${endElapsed}</div>` : ''}
+        </td>
+        <td><select data-id="${e.id}" data-field="action">${actionOpts}</select></td>
+        <td><select data-id="${e.id}" data-field="tag">${tagOpts}</select></td>
+        <td><input type="text" value="${e.note}" placeholder="optional note…" data-id="${e.id}" data-field="note" style="min-width:120px"></td>
+        <td><button class="delete-btn" data-id="${e.id}">×</button></td>
+      `;
+
+      tableBody.appendChild(tr);
+    });
+
+    bindRowEvents();
+    validate();
+  }
+
+  // ── Bind row events ────────────────────────────────────────────
+  function bindRowEvents() {
+    tableBody.querySelectorAll('input, select').forEach(el => {
+      el.addEventListener('change', onFieldChange);
+      el.addEventListener('input',  onFieldChange);
+    });
+
+    tableBody.querySelectorAll('input.ts-input').forEach(el => {
+      el.addEventListener('blur', () => {
+        const id    = parseInt(el.dataset.id);
+        const field = el.dataset.field;
+        const entry = entries.find(x => x.id === id);
+        if (entry) {
+          entry[field] = formatTS(el.value) || el.value;
+          el.value = entry[field];
+          // Update preview
+          const prevEl = document.getElementById(`prev-${field}-${id}`);
+          if (prevEl) {
+            const conv = toElapsed(entry[field]);
+            prevEl.textContent = conv ? `→ ${conv}` : '';
+          }
+          validate();
+        }
+      });
+    });
+
+    tableBody.querySelectorAll('.delete-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = parseInt(btn.dataset.id);
+        entries = entries.filter(e => e.id !== id);
+        render();
+      });
+    });
+  }
+
+  function onFieldChange(e) {
+    const id    = parseInt(e.target.dataset.id);
+    const field = e.target.dataset.field;
+    const entry = entries.find(x => x.id === id);
+    if (entry) {
+      entry[field] = e.target.value;
+      // Live preview update for ts fields
+      if (field === 'start' || field === 'end') {
+        const prevEl = document.getElementById(`prev-${field}-${id}`);
+        if (prevEl) {
+          const conv = toElapsed(entry[field]);
+          prevEl.textContent = conv ? `→ ${conv}` : '';
+        }
+      }
+      validate();
+    }
+  }
+
+  // ── Add row ────────────────────────────────────────────────────
+  document.getElementById('addRowBtn').addEventListener('click', () => {
+    entries.push({ id: nextId++, start: '', end: '', action: 'blackout+mute', tag: '', note: '' });
+    render();
+    const lastRow = tableBody.querySelector(`#row-${nextId - 1}`);
+    if (lastRow) { const inp = lastRow.querySelector('.ts-start'); if (inp) inp.focus(); }
+  });
+
+  // ── Clear all ──────────────────────────────────────────────────
+  document.getElementById('clearBtn').addEventListener('click', () => {
+    if (entries.length === 0) return;
+    if (confirm('Clear all entries? This cannot be undone.')) { entries = []; nextId = 1; render(); }
+  });
+
+  // ── Export ─────────────────────────────────────────────────────
+  document.getElementById('exportBtn').addEventListener('click', () => {
+    const title    = document.getElementById('movieTitle').value.trim();
+    const platform = document.getElementById('platform').value;
+
+    if (!title)    { document.getElementById('movieTitle').focus(); exportNote.textContent = '⚠ Movie title required.'; setTimeout(() => exportNote.textContent = '', 3000); return; }
+    if (!platform) { document.getElementById('platform').focus();   exportNote.textContent = '⚠ Platform required.';    setTimeout(() => exportNote.textContent = '', 3000); return; }
+
+    const today  = new Date().toISOString().slice(0,10);
+    const sorted = [...entries].sort((a,b) => {
+      return (parseTS(getElapsedTS(a.start)) ?? 0) - (parseTS(getElapsedTS(b.start)) ?? 0);
+    });
+
+    const censorList = sorted.map((e, i) => ({
+      id: i + 1,
+      start: getElapsedTS(e.start) || e.start,
+      end:   getElapsedTS(e.end)   || e.end,
+      action: e.action,
+      tag:    e.tag || 'Other',
+      note:   e.note || ''
+    }));
+
+    const ffsheet = {
+      version: '1.0',
+      movie:    title,
+      platform: platform,
+      created_by:   'FamilyFilter Builder',
+      created_date:  today,
+      last_updated:  today,
+      auto_subtitle_censor:  false,
+      subtitle_censor_tier: 'hard',
+      anchor_points: [],
+      censor_list:   censorList
+    };
+
+    const blob = new Blob([JSON.stringify(ffsheet, null, 2)], { type: 'application/json' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    const safe = title.replace(/[^a-zA-Z0-9 _()-]/g,'').replace(/\s+/g,'_');
+    a.href = url; a.download = `${safe}.ffsheet`; a.click();
+    URL.revokeObjectURL(url);
+
+    exportNote.textContent = `✓ Exported ${censorList.length} entr${censorList.length === 1 ? 'y' : 'ies'}`;
+    setTimeout(() => exportNote.textContent = '', 4000);
+  });
+
+  // ── Init ───────────────────────────────────────────────────────
+  setMode('countdown');
+  render();
+</script>
+
+</body>
+</html>
